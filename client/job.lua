@@ -639,3 +639,54 @@ else
         end)
     end)
 end
+
+CreateThread(function()
+    local targetAdded = false
+    local targetPlayer = nil
+
+    while true do
+        local player, distance = GetClosestPlayer()
+
+        if distance <= 2.5 then
+            local playerPed = GetPlayerPed(player)
+            
+            if IsEntityDead(playerPed) and not targetAdded then
+                
+                targetPlayer = playerPed
+                -- Ajouter une cible spécifique sur le joueur mort
+                exports['qb-target']:AddTargetEntity(targetPlayer, {
+                    options = { 
+                        { 
+                            icon = 'fa-solid fa-heart-pulse',
+                            label = 'Revive',
+                            action = function (entity)
+                                print("Attempting to revive player at distance: " .. distance)
+                                TriggerEvent('hospital:client:RevivePlayer', entity)
+                            end,
+                            job = "ambulance"
+                        }
+                    },
+                    distance = 2.5, 
+                })
+                targetAdded = true
+                print("Target added for dead player")
+            elseif not IsEntityDead(playerPed) and targetAdded then
+                print(IsEntityDead(playerPed))
+                -- Supprimer la cible si le joueur n'est plus mort
+                exports['qb-target']:RemoveTargetEntity(targetPlayer)
+                targetAdded = false
+                print("Target removed as player is not dead anymore")
+            end
+        else
+            if targetAdded then
+                -- Supprimer la cible si aucun joueur n'est proche ou si la cible n'est plus valable
+                exports['qb-target']:RemoveTargetEntity(targetPlayer)
+                targetAdded = false
+                targetPlayer = nil
+                print("Target removed as no player nearby")
+            end
+        end
+
+        Citizen.Wait(500) -- Vérifie toutes les demi-secondes pour plus de réactivité
+    end
+end)
